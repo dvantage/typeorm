@@ -34,3 +34,5 @@ export type FindOptionsSelect<Entity> = {
         ? unknown
         : FindOptionsSelectProperty<NonNullable<Entity[P]>>
 }
+
+export type FindOptionsSelectByString<Entity> = (keyof Entity)[]

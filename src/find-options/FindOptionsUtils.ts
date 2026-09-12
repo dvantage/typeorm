@@ -1,4 +1,8 @@
 import type { FindManyOptions } from "./FindManyOptions"
+import type {
+    FindOptionsSelect,
+    FindOptionsSelectByString,
+} from "./FindOptionsSelect"
 import type { FindOneOptions } from "./FindOneOptions"
 import type { SelectQueryBuilder } from "../query-builder/SelectQueryBuilder"
 import { FindRelationsNotFoundError } from "../error"
@@ -8,6 +12,7 @@ import type { FindTreeOptions } from "./FindTreeOptions"
 import type { ObjectLiteral } from "../common/ObjectLiteral"
 import type { RelationMetadata } from "../metadata/RelationMetadata"
 import { EntityPropertyNotFoundError, TypeORMError } from "../error"
+import { OrmUtils } from "../util/OrmUtils"
 
 /**
  * Utilities to work with FindOptions.
@@ -37,25 +42,15 @@ export class FindOptionsUtils {
         }
     }
 
-    /**
-     * Throws if the removed string-array `select` syntax is used.
-     * This catches untyped/JS callers still passing `select: ["col"]` after its removal in v1.0.
-     *
-     * @param options
-     */
-    static rejectStringArraySelect(options: unknown): void {
-        if (
-            options &&
-            typeof options === "object" &&
-            "select" in options &&
-            Array.isArray(options.select)
-        ) {
-            throw new TypeORMError(
-                `String-array "select" syntax has been removed. ` +
-                    `Use object syntax instead, e.g. select: { id: true, name: true }. ` +
-                    `See the v1 migration guide for details.`,
-            )
-        }
+    static normalizeSelect<Entity>(
+        select:
+            | FindOptionsSelect<Entity>
+            | FindOptionsSelectByString<Entity>
+            | undefined,
+    ): FindOptionsSelect<Entity> | undefined {
+        if (!Array.isArray(select)) return select
+
+        return OrmUtils.propertyPathsToTruthyObject(select.map(String))
     }
 
     /**

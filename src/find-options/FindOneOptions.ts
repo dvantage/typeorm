@@ -1,5 +1,8 @@
 import type { FindOptionsWhere } from "./FindOptionsWhere"
-import type { FindOptionsSelect } from "./FindOptionsSelect"
+import type {
+    FindOptionsSelect,
+    FindOptionsSelectByString,
+} from "./FindOptionsSelect"
 import type { FindOptionsRelations } from "./FindOptionsRelations"
 import type { FindOptionsOrder } from "./FindOptionsOrder"
 
@@ -17,7 +20,7 @@ export interface FindOneOptions<Entity = any> {
     /**
      * Specifies what columns should be retrieved.
      */
-    select?: FindOptionsSelect<Entity>
+    select?: FindOptionsSelect<Entity> | FindOptionsSelectByString<Entity>
 
     /**
      * Simple condition that should be applied to match entities.

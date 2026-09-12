@@ -58,7 +58,10 @@ import type {
 import type { DataSource } from "../data-source/DataSource"
 import type { MongoFindManyOptions } from "../find-options/mongodb/MongoFindManyOptions"
 import type { MongoFindOneOptions } from "../find-options/mongodb/MongoFindOneOptions"
-import type { FindOptionsSelect } from "../find-options/FindOptionsSelect"
+import type {
+    FindOptionsSelect,
+    FindOptionsSelectByString,
+} from "../find-options/FindOptionsSelect"
 import { ObjectUtils } from "../util/ObjectUtils"
 import type { ColumnMetadata } from "../metadata/ColumnMetadata"
 
@@ -1137,7 +1140,6 @@ export class MongoEntityManager extends EntityManager {
         if (!optionsOrConditions) return undefined
 
         FindOptionsUtils.rejectJoinOption(optionsOrConditions)
-        FindOptionsUtils.rejectStringArraySelect(optionsOrConditions)
         FindOptionsUtils.rejectStringArrayRelations(optionsOrConditions)
 
         if (FindOptionsUtils.isFindManyOptions<Entity>(optionsOrConditions))
@@ -1162,7 +1164,6 @@ export class MongoEntityManager extends EntityManager {
         if (!optionsOrConditions) return undefined
 
         FindOptionsUtils.rejectJoinOption(optionsOrConditions)
-        FindOptionsUtils.rejectStringArraySelect(optionsOrConditions)
         FindOptionsUtils.rejectStringArrayRelations(optionsOrConditions)
 
         if (FindOptionsUtils.isFindOneOptions<Entity>(optionsOrConditions))
@@ -1203,9 +1204,10 @@ export class MongoEntityManager extends EntityManager {
      * @param metadata
      */
     protected convertFindOptionsSelectToProjectCriteria(
-        selects: FindOptionsSelect<any>,
+        selects: FindOptionsSelect<any> | FindOptionsSelectByString<any>,
         metadata: EntityMetadata,
     ) {
+        const selection = FindOptionsUtils.normalizeSelect(selects) ?? {}
         const projection: ObjectLiteral = {}
         const build = (obj: ObjectLiteral, embedPrefix: string) => {
             for (const key of Object.keys(obj)) {
@@ -1238,7 +1240,7 @@ export class MongoEntityManager extends EntityManager {
                 throw new EntityPropertyNotFoundError(propertyPath, metadata)
             }
         }
-        build(selects as ObjectLiteral, "")
+        build(selection as ObjectLiteral, "")
 
         // Translate ObjectIdColumn property name (e.g. "id") to "_id" for MongoDB
         if (metadata.objectIdColumn) {

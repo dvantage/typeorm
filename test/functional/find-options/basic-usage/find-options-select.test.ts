@@ -144,6 +144,81 @@ describe("find options > select", () => {
             }),
         ))
 
+    it("select by property names", () =>
+        Promise.all(
+            dataSources.map(async (dataSource) => {
+                await prepareData(dataSource.manager)
+
+                const posts = await dataSource.manager.find(Post, {
+                    select: ["id", "title"],
+                    order: {
+                        id: "asc",
+                    },
+                })
+                posts.should.be.eql([
+                    { id: 1, title: "Post #1" },
+                    { id: 2, title: "Post #2" },
+                    { id: 3, title: "Post #3" },
+                    { id: 4, title: "Post #4" },
+                ])
+            }),
+        ))
+
+    it("select by property names with a relation", () =>
+        Promise.all(
+            dataSources.map(async (dataSource) => {
+                await prepareData(dataSource.manager)
+
+                const posts = await dataSource.manager.find(Post, {
+                    select: ["id", "author"],
+                    relations: {
+                        author: true,
+                    },
+                    order: {
+                        id: "asc",
+                    },
+                })
+                posts.should.be.eql([
+                    {
+                        id: 1,
+                        author: {
+                            id: 1,
+                            firstName: "Timber",
+                            lastName: "Saw",
+                            age: 25,
+                        },
+                    },
+                    {
+                        id: 2,
+                        author: {
+                            id: 1,
+                            firstName: "Timber",
+                            lastName: "Saw",
+                            age: 25,
+                        },
+                    },
+                    {
+                        id: 3,
+                        author: {
+                            id: 2,
+                            firstName: "Gyro",
+                            lastName: "Copter",
+                            age: 52,
+                        },
+                    },
+                    {
+                        id: 4,
+                        author: {
+                            id: 1,
+                            firstName: "Timber",
+                            lastName: "Saw",
+                            age: 25,
+                        },
+                    },
+                ])
+            }),
+        ))
+
     it("select column in embed", () =>
         Promise.all(
             dataSources.map(async (dataSource) => {

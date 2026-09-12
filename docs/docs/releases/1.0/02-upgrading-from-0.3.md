@@ -785,23 +785,19 @@ const post = await repository
 
 Note that locking the _main_ table still works with `relations` — only locking _joined_ tables requires QueryBuilder with inner joins.
 
-### String-based `select` removed
+### String-based `select` kept
 
-The deprecated string-array syntax for `select` find options has been removed. Use the object syntax instead:
+The string-array syntax for `select` find options (`FindOptionsSelectByString`) stays supported next to the object syntax; an array is converted to the object form before the query is built:
 
 ```typescript
-// Before
 const users = await repository.find({
     select: ["id", "name"],
 })
 
-// After
-const users = await repository.find({
+const sameUsers = await repository.find({
     select: { id: true, name: true },
 })
 ```
-
-The removed type is `FindOptionsSelectByString`.
 
 ### String-based `relations` removed
 
