@@ -405,6 +405,101 @@ describe("find options > relations", () => {
             }),
         ))
 
+    it("relations by property paths", () =>
+        Promise.all(
+            dataSources.map(async (dataSource) => {
+                await prepareData(dataSource.manager)
+
+                const posts = await dataSource.manager.find(Post, {
+                    select: ["id", "author"],
+                    relations: ["author", "author.photos"],
+                    order: {
+                        id: "asc",
+                        author: {
+                            photos: {
+                                id: "asc",
+                            },
+                        },
+                    },
+                })
+                posts.should.be.eql([
+                    {
+                        id: 1,
+                        author: {
+                            id: 1,
+                            age: 25,
+                            firstName: "Timber",
+                            lastName: "Saw",
+                            photos: [
+                                {
+                                    id: 1,
+                                    filename: "saw.jpg",
+                                    description: "Me and saw",
+                                },
+                                {
+                                    id: 2,
+                                    filename: "chain.jpg",
+                                    description: "Me and chain",
+                                },
+                            ],
+                        },
+                    },
+                    {
+                        id: 2,
+                        author: {
+                            id: 1,
+                            age: 25,
+                            firstName: "Timber",
+                            lastName: "Saw",
+                            photos: [
+                                {
+                                    id: 1,
+                                    filename: "saw.jpg",
+                                    description: "Me and saw",
+                                },
+                                {
+                                    id: 2,
+                                    filename: "chain.jpg",
+                                    description: "Me and chain",
+                                },
+                            ],
+                        },
+                    },
+                    {
+                        id: 3,
+                        author: {
+                            id: 2,
+                            age: 52,
+                            firstName: "Gyro",
+                            lastName: "Copter",
+                            photos: [],
+                        },
+                    },
+                    {
+                        id: 4,
+                        author: {
+                            id: 1,
+                            age: 25,
+                            firstName: "Timber",
+                            lastName: "Saw",
+                            photos: [
+                                {
+                                    id: 1,
+                                    filename: "saw.jpg",
+                                    description: "Me and saw",
+                                },
+                                {
+                                    id: 2,
+                                    filename: "chain.jpg",
+                                    description: "Me and chain",
+                                },
+                            ],
+                        },
+                    },
+                ])
+            }),
+        ))
+
     it("relation in embed", () =>
         Promise.all(
             dataSources.map(async (dataSource) => {

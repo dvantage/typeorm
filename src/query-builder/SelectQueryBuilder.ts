@@ -55,8 +55,12 @@ export class SelectQueryBuilder<Entity extends ObjectLiteral>
 {
     readonly "@instanceof" = Symbol.for("SelectQueryBuilder")
 
-    protected findOptions: Omit<FindManyOptions<Entity>, "select"> & {
+    protected findOptions: Omit<
+        FindManyOptions<Entity>,
+        "select" | "relations"
+    > & {
         select?: FindOptionsSelect<Entity>
+        relations?: FindOptionsRelations<Entity>
     } = {}
     protected selects: string[] = []
     protected joins: {
@@ -105,10 +109,12 @@ export class SelectQueryBuilder<Entity extends ObjectLiteral>
 
     setFindOptions(findOptions: FindManyOptions<Entity>) {
         FindOptionsUtils.rejectJoinOption(findOptions)
-        FindOptionsUtils.rejectStringArrayRelations(findOptions)
         this.findOptions = {
             ...findOptions,
             select: FindOptionsUtils.normalizeSelect(findOptions.select),
+            relations: FindOptionsUtils.normalizeRelations(
+                findOptions.relations,
+            ),
         }
         this.applyFindOptions()
         return this

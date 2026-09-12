@@ -4,6 +4,10 @@ import type {
     FindOptionsSelectByString,
 } from "./FindOptionsSelect"
 import type { FindOneOptions } from "./FindOneOptions"
+import type {
+    FindOptionsRelationByString,
+    FindOptionsRelations,
+} from "./FindOptionsRelations"
 import type { SelectQueryBuilder } from "../query-builder/SelectQueryBuilder"
 import { FindRelationsNotFoundError } from "../error"
 import type { EntityMetadata } from "../metadata/EntityMetadata"
@@ -53,25 +57,15 @@ export class FindOptionsUtils {
         return OrmUtils.propertyPathsToTruthyObject(select.map(String))
     }
 
-    /**
-     * Throws if the removed string-array `relations` syntax is used.
-     * This catches untyped/JS callers still passing `relations: ["rel"]` after its removal in v1.0.
-     *
-     * @param options
-     */
-    static rejectStringArrayRelations(options: unknown): void {
-        if (
-            options &&
-            typeof options === "object" &&
-            "relations" in options &&
-            Array.isArray(options.relations)
-        ) {
-            throw new TypeORMError(
-                `String-array "relations" syntax has been removed. ` +
-                    `Use object syntax instead, e.g. relations: { profile: true, posts: true }. ` +
-                    `See the v1 migration guide for details.`,
-            )
-        }
+    static normalizeRelations<Entity>(
+        relations:
+            | FindOptionsRelations<Entity>
+            | FindOptionsRelationByString
+            | undefined,
+    ): FindOptionsRelations<Entity> | undefined {
+        if (!Array.isArray(relations)) return relations
+
+        return OrmUtils.propertyPathsToTruthyObject(relations)
     }
 
     /**

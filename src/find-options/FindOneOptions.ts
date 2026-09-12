@@ -3,7 +3,10 @@ import type {
     FindOptionsSelect,
     FindOptionsSelectByString,
 } from "./FindOptionsSelect"
-import type { FindOptionsRelations } from "./FindOptionsRelations"
+import type {
+    FindOptionsRelationByString,
+    FindOptionsRelations,
+} from "./FindOptionsRelations"
 import type { FindOptionsOrder } from "./FindOptionsOrder"
 
 /**
@@ -30,7 +33,7 @@ export interface FindOneOptions<Entity = any> {
     /**
      * Indicates what relations of entity should be loaded (simplified left join form).
      */
-    relations?: FindOptionsRelations<Entity>
+    relations?: FindOptionsRelations<Entity> | FindOptionsRelationByString
 
     /**
      * Specifies how relations must be loaded - using "joins" or separate queries.

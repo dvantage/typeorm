@@ -34,3 +34,5 @@ export type FindOptionsRelations<Entity> = {
         ? unknown
         : FindOptionsRelationsProperty<NonNullable<Entity[P]>>
 }
+
+export type FindOptionsRelationByString = string[]

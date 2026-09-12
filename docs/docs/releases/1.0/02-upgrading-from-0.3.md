@@ -799,23 +799,19 @@ const sameUsers = await repository.find({
 })
 ```
 
-### String-based `relations` removed
+### String-based `relations` kept
 
-The deprecated string-array syntax for `relations` find options has been removed. Use the object syntax instead:
+The string-array syntax for `relations` find options (`FindOptionsRelationByString`) stays supported next to the object syntax; property paths such as `"posts.comments"` become the nested object form before the query is built:
 
 ```typescript
-// Before
 const users = await repository.find({
-    relations: ["profile", "posts"],
+    relations: ["profile", "posts.comments"],
 })
 
-// After
-const users = await repository.find({
-    relations: { profile: true, posts: true },
+const sameUsers = await repository.find({
+    relations: { profile: true, posts: { comments: true } },
 })
 ```
-
-The removed type is `FindOptionsRelationByString`.
 
 ## QueryBuilder
 
