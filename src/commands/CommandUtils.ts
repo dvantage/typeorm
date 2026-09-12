@@ -9,6 +9,8 @@ import { importOrRequireFile } from "../util/ImportUtils"
  * Command line utils functions.
  */
 export class CommandUtils {
+    static readonly packageName = "@dvantage/typeorm"
+
     static async loadDataSource(
         dataSourceFilePath: string,
     ): Promise<DataSource> {

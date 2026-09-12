@@ -52,7 +52,7 @@ export class SubscriberCreateCommand implements yargs.CommandModule {
      * @param name
      */
     protected static getTemplate(name: string): string {
-        return `import { EventSubscriber, EntitySubscriberInterface } from "typeorm"
+        return `import { EventSubscriber, EntitySubscriberInterface } from "${CommandUtils.packageName}"
 
 @EventSubscriber()
 export class ${name} implements EntitySubscriberInterface {

@@ -256,7 +256,7 @@ export class InitCommand implements yargs.CommandModule {
         }
 
         return `import "reflect-metadata"
-import { DataSource } from "typeorm"
+import { DataSource } from "${CommandUtils.packageName}"
 import { User } from "./entities/User${isEsm ? ".js" : ""}"
 
 export const AppDataSource = new DataSource({
@@ -333,8 +333,8 @@ temp/`
     protected static getUserEntityTemplate(database: string): string {
         return `${
             database === "mongodb"
-                ? `import { Entity, ObjectIdColumn, Column } from "typeorm"\nimport { ObjectId } from "mongodb"`
-                : `import { Entity, PrimaryGeneratedColumn, Column } from "typeorm"`
+                ? `import { Entity, ObjectIdColumn, Column } from "${CommandUtils.packageName}"\nimport { ObjectId } from "mongodb"`
+                : `import { Entity, PrimaryGeneratedColumn, Column } from "${CommandUtils.packageName}"`
         }
 
 @Entity()
@@ -731,7 +731,7 @@ Steps to run this project:
         packageJson.dependencies = {
             ...packageJson.dependencies,
             "reflect-metadata": ourPackageJson.dependencies["reflect-metadata"],
-            typeorm: ourPackageJson.version,
+            [CommandUtils.packageName]: ourPackageJson.version,
         }
 
         switch (database) {

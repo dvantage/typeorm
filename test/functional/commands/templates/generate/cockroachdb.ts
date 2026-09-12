@@ -1,5 +1,5 @@
 export const cockroachdb: Record<string, string> = {
-    control: `import { MigrationInterface, QueryRunner } from "typeorm";
+    control: `import { MigrationInterface, QueryRunner } from "@dvantage/typeorm";
 
 export class TestMigration1610975184784 implements MigrationInterface {
     name = 'TestMigration1610975184784'
@@ -43,7 +43,7 @@ module.exports = class TestMigration1610975184784 {
         await queryRunner.query(\`DROP SEQUENCE "post_id_seq"\`);
     }
 }`,
-    timestamp: `import { MigrationInterface, QueryRunner } from "typeorm";
+    timestamp: `import { MigrationInterface, QueryRunner } from "@dvantage/typeorm";
 
 export class TestMigration1641163894670 implements MigrationInterface {
     name = 'TestMigration1641163894670'

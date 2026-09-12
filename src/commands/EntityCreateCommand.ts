@@ -50,7 +50,7 @@ export class EntityCreateCommand implements yargs.CommandModule {
      * @param name
      */
     protected static getTemplate(name: string): string {
-        return `import { Entity } from "typeorm"
+        return `import { Entity } from "${CommandUtils.packageName}"
 
 @Entity()
 export class ${name} {

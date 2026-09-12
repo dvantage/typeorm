@@ -246,7 +246,7 @@ export class MigrationGenerateCommand implements yargs.CommandModule {
     ): string {
         const migrationName = `${camelCase(name, true)}${timestamp}`
 
-        return `import { MigrationInterface, QueryRunner } from "typeorm";
+        return `import { MigrationInterface, QueryRunner } from "${CommandUtils.packageName}";
 
 export class ${migrationName} implements MigrationInterface {
     name = '${migrationName}'
