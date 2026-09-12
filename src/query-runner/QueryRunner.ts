@@ -15,6 +15,7 @@ import type { IsolationLevel } from "../driver/types/IsolationLevel"
 import type { TableExclusion } from "../schema-builder/table/TableExclusion"
 import type { QueryResult } from "./QueryResult"
 import type { ReplicationMode } from "../driver/types/ReplicationMode"
+import type { TransactionRetryPolicy } from "../driver/types/TransactionRetryPolicy"
 
 /**
  * Runs queries on a single database connection.
@@ -52,6 +53,8 @@ export interface QueryRunner extends AsyncDisposable {
      * Indicates if transaction is in progress.
      */
     readonly isTransactionActive: boolean
+
+    readonly transactionRetryPolicy?: TransactionRetryPolicy
 
     /**
      * Stores temporarily user data.

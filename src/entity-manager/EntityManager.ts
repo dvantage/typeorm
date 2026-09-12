@@ -153,12 +153,33 @@ export class EntityManager {
         // if its not defined we create a new query runner - single connection where we'll execute all our operations
         const queryRunner =
             this.queryRunner ?? this.dataSource.createQueryRunner()
+        const retryPolicy = queryRunner.isTransactionActive
+            ? undefined
+            : queryRunner.transactionRetryPolicy
 
         try {
             await queryRunner.startTransaction(isolation)
-            const result = await runInTransaction(queryRunner.manager)
-            await queryRunner.commitTransaction()
-            return result
+            for (let retryNumber = 1; ; retryNumber += 1) {
+                try {
+                    const result = await runInTransaction(queryRunner.manager)
+                    await queryRunner.commitTransaction()
+                    return result
+                } catch (attemptError) {
+                    if (!retryPolicy?.shouldRetry(attemptError, retryNumber))
+                        throw attemptError
+
+                    const retryDelay = retryPolicy.delayBeforeRetry(retryNumber)
+                    this.dataSource.logger.log(
+                        "warn",
+                        `Retrying transaction in ${retryDelay} ms, attempt ${retryNumber} failed: ${attemptError}`,
+                        queryRunner,
+                    )
+                    await retryPolicy.restartTransaction()
+                    await new Promise((resolve) =>
+                        setTimeout(resolve, retryDelay),
+                    )
+                }
+            }
         } catch (err) {
             try {
                 // we throw original error even if rollback thrown an error
@@ -1472,6 +1493,12 @@ export class EntityManager {
      * Shared implementation of {@link increment} and {@link decrement}: builds a
      * `column = column +/- value` UPDATE and delegates execution to {@link update},
      * so the criteria handling stays aligned with the other write methods.
+     *
+     * @param operation
+     * @param entityClass
+     * @param conditions
+     * @param propertyPath
+     * @param value
      */
     protected incrementOrDecrementBy<Entity extends ObjectLiteral>(
         operation: "increment" | "decrement",

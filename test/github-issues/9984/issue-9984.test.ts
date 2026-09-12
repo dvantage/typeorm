@@ -24,17 +24,20 @@ describe("github issues > #9984 TransactionRetryWithProtoRefreshError should be 
         Promise.all(
             dataSources.map(async (dataSource) => {
                 const queryRunner = dataSource.createQueryRunner()
-                await dataSource.query("SET inject_retry_errors_enabled = true")
-                await queryRunner.startTransaction()
+                await queryRunner.query(
+                    "SET inject_retry_errors_enabled = true",
+                )
 
                 const post = new Post()
                 post.name = `post`
-                await queryRunner.manager.save(post)
-                await queryRunner.commitTransaction()
-                await queryRunner.release()
-                await dataSource.query(
+                await queryRunner.manager.transaction((entityManager) =>
+                    entityManager.save(post),
+                )
+
+                await queryRunner.query(
                     "SET inject_retry_errors_enabled = false",
                 )
+                await queryRunner.release()
                 const loadedPost = await dataSource.manager.findOneBy(Post, {
                     id: post.id,
                 })
@@ -45,24 +48,23 @@ describe("github issues > #9984 TransactionRetryWithProtoRefreshError should be 
     it("should retry transaction on 40001 error", () =>
         Promise.all(
             dataSources.map(async (dataSource) => {
-                const queryRunner = dataSource.createQueryRunner()
                 const post = new Post()
                 post.name = "post"
-                await queryRunner.manager.save(post)
-                await queryRunner.release()
+                await dataSource.manager.save(post)
 
-                const query = async (name: string) => {
-                    const queryRunner = dataSource.createQueryRunner()
-                    await queryRunner.startTransaction()
-                    const updatedPost = new Post()
-                    updatedPost.id = post.id
-                    updatedPost.name = name
-                    await queryRunner.manager.save(updatedPost)
-                    await queryRunner.commitTransaction()
-                    await queryRunner.release()
-                }
+                const renamePost = (name: string) =>
+                    dataSource.transaction(async (entityManager) => {
+                        const updatedPost = new Post()
+                        updatedPost.id = post.id
+                        updatedPost.name = name
+                        await entityManager.save(updatedPost)
+                    })
 
-                await Promise.all([1, 2, 3].map((i) => query(`changed_${i}`)))
+                await Promise.all(
+                    [1, 2, 3].map((renameNumber) =>
+                        renamePost(`changed_${renameNumber}`),
+                    ),
+                )
 
                 const loadedPost = await dataSource.manager.findOneByOrFail(
                     Post,

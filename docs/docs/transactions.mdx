@@ -248,6 +248,24 @@ const dataSource = new DataSource({
 
 When set, all transactions started without an explicit isolation level will use this default. An explicit isolation level passed to `transaction()` or `startTransaction()` will override the default.
 
+## Transaction retries
+
+<DatabaseTabs>
+<DatabaseTab value="cockroachdb">
+
+CockroachDB aborts a transaction that conflicts with a concurrent one and reports the SQLSTATE `40001` serialization failure to the client, which has to run the whole transaction again ([CockroachDB transaction retries](https://www.cockroachlabs.com/docs/stable/transaction-retry-error-reference)).
+
+`DataSource.transaction()` and `EntityManager.transaction()` handle it: after a `40001` thrown inside the callback or at commit time, TypeORM rolls the transaction back to its retry savepoint (`ROLLBACK TO SAVEPOINT cockroach_restart`), waits with exponential backoff and jitter (25 ms base, 400 ms cap) and runs the callback again in the same transaction. Every attempt reads its data afresh, so read-modify-write logic in the callback stays correct.
+
+The callback must therefore be safe to run more than once: keep side effects that are not part of the transaction (sending messages, writing files) outside of it.
+
+The number of retries is controlled by the `maxTransactionRetries` data source option (default `5`, `0` disables the retries). When the retries are exhausted, the serialization failure is thrown to the caller.
+
+Only the callback form is retried. A transaction driven manually through a `QueryRunner` (`startTransaction()`, `commitTransaction()`) surfaces the `40001` error to your code, which has to retry the whole transaction itself.
+
+</DatabaseTab>
+</DatabaseTabs>
+
 ## Using `QueryRunner` to create and control state of single database connection
 
 `QueryRunner` provides a single database connection.
