@@ -1,11 +1,12 @@
 import { expect } from "chai"
-import type { DataSource } from "../../../../src/"
+import type { DataSource, EntityManager, LockRows } from "../../../../src/"
 import {
     LockNotSupportedOnGivenDriverError,
     NoVersionOrUpdateDateColumnError,
     OptimisticLockCanNotBeUsedError,
     OptimisticLockVersionMismatchError,
     PessimisticLockTransactionRequiredError,
+    TypeORMError,
 } from "../../../../src/"
 import { DriverUtils } from "../../../../src/driver/DriverUtils"
 import {
@@ -18,6 +19,43 @@ import { PostWithoutVersionAndUpdateDate } from "./entity/PostWithoutVersionAndU
 import { PostWithUpdateDate } from "./entity/PostWithUpdateDate"
 import { PostWithVersion } from "./entity/PostWithVersion"
 import { PostWithVersionAndUpdatedDate } from "./entity/PostWithVersionAndUpdatedDate"
+
+const INJECTED_SERIALIZATION_FAILURES = 3
+
+const seedClaimablePosts = async (dataSource: DataSource): Promise<Post[]> => {
+    await dataSource.manager.save(
+        Post,
+        Array.from({ length: 8 }, () => ({ title: "claimed" })),
+    )
+    return dataSource.manager.save(Post, [{ title: "free" }, { title: "free" }])
+}
+
+const claimFreePost = (entityManager: EntityManager, lockRows: LockRows) =>
+    entityManager
+        .createQueryBuilder(Post, "post")
+        .setLock("pessimistic_write")
+        .setOnLocked("skip_locked")
+        .setLockRows(lockRows)
+        .where("post.title = :title", { title: "free" })
+        .orderBy("post.id", "ASC")
+        .limit(1)
+        .getOne()
+
+const countPostLocks = async (dataSource: DataSource): Promise<number> => {
+    const [lockCountRow] = await dataSource.query(
+        "SELECT count(*) AS lock_count FROM crdb_internal.cluster_locks WHERE database_name = current_database() AND table_name = 'post'",
+    )
+    return Number(lockCountRow.lock_count)
+}
+
+const readLockOperatorSetting = async (
+    entityManager: EntityManager,
+): Promise<string> => {
+    const [settingRow] = await entityManager.query(
+        "SHOW optimizer_use_lock_op_for_serializable",
+    )
+    return settingRow.optimizer_use_lock_op_for_serializable
+}
 
 describe("query builder > locking", () => {
     let dataSources: DataSource[]
@@ -889,4 +927,258 @@ describe("query builder > locking", () => {
                 expect(sql.endsWith("LOCK IN SHARE MODE")).to.be.true
             }
         }))
+
+    it("should lock only the returned rows with lockRows returned", () =>
+        Promise.all(
+            dataSources.map(async (dataSource) => {
+                if (dataSource.driver.options.type !== "cockroachdb") return
+
+                const [firstFreePost] = await seedClaimablePosts(dataSource)
+
+                await dataSource.transaction(async (entityManager) => {
+                    const claimedPost = await claimFreePost(
+                        entityManager,
+                        "returned",
+                    )
+
+                    expect(claimedPost?.id).to.equal(firstFreePost.id)
+                    expect(await countPostLocks(dataSource)).to.equal(1)
+                    expect(
+                        await readLockOperatorSetting(entityManager),
+                    ).to.equal("off")
+                })
+            }),
+        ))
+
+    it("should lock every scanned row with lockRows scanned in a lockRows returned transaction", () =>
+        Promise.all(
+            dataSources.map(async (dataSource) => {
+                if (dataSource.driver.options.type !== "cockroachdb") return
+
+                const [firstFreePost] = await seedClaimablePosts(dataSource)
+
+                await dataSource.transaction(
+                    { lockRows: "returned" },
+                    async (entityManager) => {
+                        expect(
+                            await readLockOperatorSetting(entityManager),
+                        ).to.equal("on")
+
+                        const claimedPost = await claimFreePost(
+                            entityManager,
+                            "scanned",
+                        )
+
+                        expect(claimedPost?.id).to.equal(firstFreePost.id)
+                        expect(
+                            await countPostLocks(dataSource),
+                        ).to.be.greaterThan(1)
+                        expect(
+                            await readLockOperatorSetting(entityManager),
+                        ).to.equal("on")
+                    },
+                )
+            }),
+        ))
+
+    it("should let a concurrent claim with lockRows returned skip to the next free row", () =>
+        Promise.all(
+            dataSources.map(async (dataSource) => {
+                if (dataSource.driver.options.type !== "cockroachdb") return
+
+                const [firstFreePost, secondFreePost] =
+                    await seedClaimablePosts(dataSource)
+                const firstQueryRunner = dataSource.createQueryRunner()
+                await firstQueryRunner.startTransaction()
+
+                try {
+                    const firstClaimedPost = await claimFreePost(
+                        firstQueryRunner.manager,
+                        "returned",
+                    )
+                    const secondClaimedPost = await dataSource.transaction(
+                        (entityManager) =>
+                            claimFreePost(entityManager, "returned"),
+                    )
+
+                    expect(firstClaimedPost?.id).to.equal(firstFreePost.id)
+                    expect(secondClaimedPost?.id).to.equal(secondFreePost.id)
+                } finally {
+                    await firstQueryRunner.rollbackTransaction()
+                    await firstQueryRunner.release()
+                }
+            }),
+        ))
+
+    it("should apply lockRows from find options", () =>
+        Promise.all(
+            dataSources.map(async (dataSource) => {
+                if (dataSource.driver.options.type !== "cockroachdb") return
+
+                const [firstFreePost] = await seedClaimablePosts(dataSource)
+
+                await dataSource.transaction(async (entityManager) => {
+                    const claimedPost = await entityManager.findOne(Post, {
+                        where: { title: "free" },
+                        order: { id: "ASC" },
+                        lock: {
+                            mode: "pessimistic_write",
+                            onLocked: "skip_locked",
+                            rows: "returned",
+                        },
+                    })
+
+                    expect(claimedPost?.id).to.equal(firstFreePost.id)
+                    expect(await countPostLocks(dataSource)).to.equal(1)
+                })
+            }),
+        ))
+
+    it("should keep lockRows of the transaction after serialization failure retries", () =>
+        Promise.all(
+            dataSources.map(async (dataSource) => {
+                if (dataSource.driver.options.type !== "cockroachdb") return
+
+                const queryRunner = dataSource.createQueryRunner()
+                let callbackRuns = 0
+                let lockOperatorSetting: string | undefined
+
+                try {
+                    await queryRunner.query(
+                        "SET inject_retry_errors_enabled = true",
+                    )
+                    await queryRunner.manager.transaction(
+                        { lockRows: "returned" },
+                        async (entityManager) => {
+                            callbackRuns += 1
+                            await entityManager.find(Post)
+                            lockOperatorSetting =
+                                await readLockOperatorSetting(entityManager)
+                        },
+                    )
+                } finally {
+                    await queryRunner.query(
+                        "SET inject_retry_errors_enabled = false",
+                    )
+                    await queryRunner.release()
+                }
+
+                expect(callbackRuns).to.equal(
+                    INJECTED_SERIALIZATION_FAILURES + 1,
+                )
+                expect(lockOperatorSetting).to.equal("on")
+            }),
+        ))
+
+    it("should revert lockRows of a failed query to the transaction setting before the retry", () =>
+        Promise.all(
+            dataSources.map(async (dataSource) => {
+                if (dataSource.driver.options.type !== "cockroachdb") return
+
+                await seedClaimablePosts(dataSource)
+                const queryRunner = dataSource.createQueryRunner()
+                let callbackRuns = 0
+                let lockOperatorSettingAfterRetries: string | undefined
+
+                try {
+                    await queryRunner.query(
+                        "SET inject_retry_errors_enabled = true",
+                    )
+                    await queryRunner.manager.transaction(
+                        async (entityManager) => {
+                            callbackRuns += 1
+                            if (
+                                callbackRuns > INJECTED_SERIALIZATION_FAILURES
+                            ) {
+                                lockOperatorSettingAfterRetries =
+                                    await readLockOperatorSetting(entityManager)
+                            }
+                            await claimFreePost(entityManager, "returned")
+                        },
+                    )
+                } finally {
+                    await queryRunner.query(
+                        "SET inject_retry_errors_enabled = false",
+                    )
+                    await queryRunner.release()
+                }
+
+                expect(callbackRuns).to.equal(
+                    INJECTED_SERIALIZATION_FAILURES + 1,
+                )
+                expect(lockOperatorSettingAfterRetries).to.equal("off")
+            }),
+        ))
+
+    it("should throw error if lockRows used without a pessimistic lock", () => {
+        for (const dataSource of dataSources) {
+            if (dataSource.driver.options.type !== "cockroachdb") continue
+
+            expect(() =>
+                dataSource
+                    .createQueryBuilder(Post, "post")
+                    .setLockRows("returned")
+                    .getSql(),
+            ).to.throw(
+                TypeORMError,
+                "lockRows requires a pessimistic lock mode",
+            )
+        }
+    })
+
+    it("should throw error if lockRows used with unsupported driver", () =>
+        Promise.all(
+            dataSources.map(async (dataSource) => {
+                if (dataSource.driver.options.type === "cockroachdb") return
+
+                expect(() =>
+                    dataSource
+                        .createQueryBuilder(Post, "post")
+                        .setLock("pessimistic_write")
+                        .setLockRows("returned")
+                        .getSql(),
+                ).to.throw(LockNotSupportedOnGivenDriverError)
+
+                await dataSource
+                    .transaction({ lockRows: "returned" }, () =>
+                        Promise.resolve(),
+                    )
+                    .should.be.rejectedWith(LockNotSupportedOnGivenDriverError)
+            }),
+        ))
+
+    it("should throw error if lockRows is set for a nested transaction", () =>
+        Promise.all(
+            dataSources.map(async (dataSource) => {
+                if (dataSource.driver.options.type !== "cockroachdb") return
+
+                await dataSource
+                    .transaction((entityManager) =>
+                        entityManager.transaction(
+                            { lockRows: "returned" },
+                            () => Promise.resolve(),
+                        ),
+                    )
+                    .should.be.rejectedWith(
+                        TypeORMError,
+                        "lockRows cannot be set for a nested transaction",
+                    )
+            }),
+        ))
+
+    it("should throw error if a lockRows query runs outside a transaction", () =>
+        Promise.all(
+            dataSources.map(async (dataSource) => {
+                if (dataSource.driver.options.type !== "cockroachdb") return
+
+                await dataSource
+                    .createQueryBuilder(Post, "post")
+                    .setLock("pessimistic_write")
+                    .setLockRows("returned")
+                    .getRawMany()
+                    .should.be.rejectedWith(
+                        PessimisticLockTransactionRequiredError,
+                    )
+            }),
+        ))
 })

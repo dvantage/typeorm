@@ -1,6 +1,7 @@
 import type { ObjectLiteral } from "../common/ObjectLiteral"
 import type { DataSource } from "../data-source/DataSource"
 import type { CockroachDataSourceOptions } from "../driver/cockroachdb/CockroachDataSourceOptions"
+import type { LockRows } from "../driver/types/LockRows"
 import type { UpsertType } from "../driver/types/UpsertType"
 import { TypeORMError } from "../error"
 import type { OrderByCondition } from "../find-options/OrderByCondition"
@@ -199,6 +200,8 @@ export class QueryExpressionMap {
      * Modify behavior when encountering locked rows. NOWAIT or SKIP LOCKED
      */
     onLocked?: "nowait" | "skip_locked"
+
+    lockRows?: LockRows
 
     /**
      * Indicates if soft-deleted rows should be included in entity result.
@@ -513,6 +516,7 @@ export class QueryExpressionMap {
         map.onLocked = this.onLocked
         map.lockVersion = this.lockVersion
         map.lockTables = this.lockTables
+        map.lockRows = this.lockRows
         map.withDeleted = this.withDeleted
         map.parameters = Object.assign({}, this.parameters)
         map.disableEscaping = this.disableEscaping

@@ -2,11 +2,13 @@ import type { QueryResultCacheOptions } from "../cache/QueryResultCacheOptions"
 import type { EntityTarget } from "../common/EntityTarget"
 import type { ObjectLiteral } from "../common/ObjectLiteral"
 import type { AuroraMysqlDriver } from "../driver/aurora-mysql/AuroraMysqlDriver"
+import type { CockroachQueryRunner } from "../driver/cockroachdb/CockroachQueryRunner"
 import { DriverUtils } from "../driver/DriverUtils"
 import type { MysqlDriver } from "../driver/mysql/MysqlDriver"
 import type { ReactNativeDriver } from "../driver/react-native/ReactNativeDriver"
 import type { AbstractSqliteDriver } from "../driver/sqlite-abstract/AbstractSqliteDriver"
 import type { SqlServerDriver } from "../driver/sqlserver/SqlServerDriver"
+import type { LockRows } from "../driver/types/LockRows"
 import { TypeORMError } from "../error"
 import { EntityNotFoundError } from "../error/EntityNotFoundError"
 import { EntityPropertyNotFoundError } from "../error/EntityPropertyNotFoundError"
@@ -1604,6 +1606,11 @@ export class SelectQueryBuilder<Entity extends ObjectLiteral>
         return this
     }
 
+    setLockRows(lockRows: LockRows): this {
+        this.expressionMap.lockRows = lockRows
+        return this
+    }
+
     /**
      * Disables the global condition of "non-deleted" for the entity with delete date columns.
      */
@@ -2809,6 +2816,22 @@ export class SelectQueryBuilder<Entity extends ObjectLiteral>
             lockTablesClause = " OF " + this.expressionMap.lockTables.join(", ")
         }
 
+        if (this.expressionMap.lockRows) {
+            if (driver.options.type !== "cockroachdb") {
+                throw new LockNotSupportedOnGivenDriverError()
+            }
+            if (
+                this.expressionMap.lockMode !== "pessimistic_read" &&
+                this.expressionMap.lockMode !== "pessimistic_write" &&
+                this.expressionMap.lockMode !== "for_no_key_update" &&
+                this.expressionMap.lockMode !== "for_key_share"
+            ) {
+                throw new TypeORMError(
+                    "lockRows requires a pessimistic lock mode",
+                )
+            }
+        }
+
         let onLockExpression = ""
         if (this.expressionMap.onLocked === "nowait") {
             onLockExpression = " NOWAIT"
@@ -3413,6 +3436,10 @@ export class SelectQueryBuilder<Entity extends ObjectLiteral>
                     if (this.findOptions.lock.onLocked) {
                         this.setOnLocked(this.findOptions.lock.onLocked)
                     }
+
+                    if (this.findOptions.lock.rows) {
+                        this.setLockRows(this.findOptions.lock.rows)
+                    }
                 }
             }
 
@@ -3916,7 +3943,13 @@ export class SelectQueryBuilder<Entity extends ObjectLiteral>
             }
         }
 
-        const results = await queryRunner.query(sql, parameters, true)
+        const results = this.expressionMap.lockRows
+            ? await (queryRunner as CockroachQueryRunner).queryWithLockRows(
+                  this.expressionMap.lockRows,
+                  sql,
+                  parameters,
+              )
+            : await queryRunner.query(sql, parameters, true)
 
         if (
             !cacheError &&

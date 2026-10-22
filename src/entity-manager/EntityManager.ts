@@ -13,7 +13,11 @@ import { TreeRepository } from "../repository/TreeRepository"
 import { Repository } from "../repository/Repository"
 import { PlainObjectToNewEntityTransformer } from "../query-builder/transformer/PlainObjectToNewEntityTransformer"
 import { PlainObjectToDatabaseEntityTransformer } from "../query-builder/transformer/PlainObjectToDatabaseEntityTransformer"
-import { TreeRepositoryNotSupportedError, TypeORMError } from "../error"
+import {
+    LockNotSupportedOnGivenDriverError,
+    TreeRepositoryNotSupportedError,
+    TypeORMError,
+} from "../error"
 import type { QueryRunner } from "../query-runner/QueryRunner"
 import type { SelectQueryBuilder } from "../query-builder/SelectQueryBuilder"
 import type { QueryDeepPartialEntity } from "../query-builder/QueryPartialEntity"
@@ -24,6 +28,7 @@ import type { UpdateResult } from "../query-builder/result/UpdateResult"
 import type { DeleteResult } from "../query-builder/result/DeleteResult"
 import type { FindOptionsWhere } from "../find-options/FindOptionsWhere"
 import type { IsolationLevel } from "../driver/types/IsolationLevel"
+import type { LockRows } from "../driver/types/LockRows"
 import { ObjectUtils } from "../util/ObjectUtils"
 import type { UpsertOptions } from "../repository/UpsertOptions"
 import type { UpdateOptions } from "../repository/UpdateOptions"
@@ -119,25 +124,36 @@ export class EntityManager {
         runInTransaction: (entityManager: EntityManager) => Promise<T>,
     ): Promise<T>
 
+    async transaction<T>(
+        options: { isolationLevel?: IsolationLevel; lockRows?: LockRows },
+        runInTransaction: (entityManager: EntityManager) => Promise<T>,
+    ): Promise<T>
+
     /**
      * Wraps given function execution (and all operations made there) in a transaction.
      * All database operations must be executed using provided entity manager.
      *
-     * @param isolationOrRunInTransaction
+     * @param isolationOrOptionsOrRunInTransaction
      * @param runInTransactionParam
      */
     async transaction<T>(
-        isolationOrRunInTransaction:
-            IsolationLevel | ((entityManager: EntityManager) => Promise<T>),
+        isolationOrOptionsOrRunInTransaction:
+            | IsolationLevel
+            | { isolationLevel?: IsolationLevel; lockRows?: LockRows }
+            | ((entityManager: EntityManager) => Promise<T>),
         runInTransactionParam?: (entityManager: EntityManager) => Promise<T>,
     ): Promise<T> {
-        const isolation =
-            typeof isolationOrRunInTransaction === "string"
-                ? isolationOrRunInTransaction
-                : undefined
+        let isolation: IsolationLevel | undefined
+        let lockRows: LockRows | undefined
+        if (typeof isolationOrOptionsOrRunInTransaction === "string") {
+            isolation = isolationOrOptionsOrRunInTransaction
+        } else if (typeof isolationOrOptionsOrRunInTransaction === "object") {
+            isolation = isolationOrOptionsOrRunInTransaction.isolationLevel
+            lockRows = isolationOrOptionsOrRunInTransaction.lockRows
+        }
         const runInTransaction =
-            typeof isolationOrRunInTransaction === "function"
-                ? isolationOrRunInTransaction
+            typeof isolationOrOptionsOrRunInTransaction === "function"
+                ? isolationOrOptionsOrRunInTransaction
                 : runInTransactionParam
 
         if (!runInTransaction) {
@@ -146,6 +162,9 @@ export class EntityManager {
             )
         }
 
+        if (lockRows && this.dataSource.driver.options.type !== "cockroachdb")
+            throw new LockNotSupportedOnGivenDriverError()
+
         if (this.queryRunner?.isReleased)
             throw new QueryRunnerProviderAlreadyReleasedError()
 
@@ -153,12 +172,18 @@ export class EntityManager {
         // if its not defined we create a new query runner - single connection where we'll execute all our operations
         const queryRunner =
             this.queryRunner ?? this.dataSource.createQueryRunner()
+
+        if (lockRows && queryRunner.isTransactionActive)
+            throw new TypeORMError(
+                "lockRows cannot be set for a nested transaction",
+            )
+
         const retryPolicy = queryRunner.isTransactionActive
             ? undefined
             : queryRunner.transactionRetryPolicy
 
         try {
-            await queryRunner.startTransaction(isolation)
+            await queryRunner.startTransaction(isolation, lockRows)
             for (let retryNumber = 1; ; retryNumber += 1) {
                 try {
                     const result = await runInTransaction(queryRunner.manager)

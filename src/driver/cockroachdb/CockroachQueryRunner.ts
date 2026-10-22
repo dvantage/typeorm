@@ -1,6 +1,7 @@
 import type { ObjectLiteral } from "../../common/ObjectLiteral"
 import { TypeORMError } from "../../error"
 import { NamedPlaceholdersNotSupportedError } from "../../error/NamedPlaceholdersNotSupportedError"
+import { PessimisticLockTransactionRequiredError } from "../../error/PessimisticLockTransactionRequiredError"
 import { QueryFailedError } from "../../error/QueryFailedError"
 import { QueryRunnerAlreadyReleasedError } from "../../error/QueryRunnerAlreadyReleasedError"
 import { TransactionNotStartedError } from "../../error/TransactionNotStartedError"
@@ -25,6 +26,7 @@ import { VersionUtils } from "../../util/VersionUtils"
 import { Query } from "../Query"
 import type { ColumnType } from "../types/ColumnTypes"
 import type { IsolationLevel } from "../types/IsolationLevel"
+import type { LockRows } from "../types/LockRows"
 import { validateIsolationLevel } from "../validate-isolation-level"
 import { MetadataTableType } from "../types/MetadataTableType"
 import type { ReplicationMode } from "../types/ReplicationMode"
@@ -62,6 +64,8 @@ export class CockroachQueryRunner
      * Special callback provided by a driver used to release a created connection.
      */
     protected releaseCallback?: (err: any) => void
+
+    protected transactionLockRows: LockRows = "scanned"
 
     // -------------------------------------------------------------------------
     // Constructor
@@ -173,14 +177,23 @@ export class CockroachQueryRunner
      * Starts transaction.
      *
      * @param isolationLevel
+     * @param lockRows
      */
-    async startTransaction(isolationLevel?: IsolationLevel): Promise<void> {
+    async startTransaction(
+        isolationLevel?: IsolationLevel,
+        lockRows?: LockRows,
+    ): Promise<void> {
         isolationLevel ??= this.dataSource.options.isolationLevel
 
         validateIsolationLevel(
             this.driver.supportedIsolationLevels,
             isolationLevel,
         )
+
+        if (lockRows && this.transactionDepth > 0)
+            throw new TypeORMError(
+                "lockRows cannot be set for a nested transaction",
+            )
 
         this.isTransactionActive = true
         try {
@@ -192,6 +205,10 @@ export class CockroachQueryRunner
 
         if (this.transactionDepth === 0) {
             await this.query("START TRANSACTION")
+            if (lockRows) {
+                await this.setLocalLockRows(lockRows)
+                this.transactionLockRows = lockRows
+            }
             await this.query("SAVEPOINT cockroach_restart")
             if (isolationLevel) {
                 await this.query(
@@ -225,6 +242,7 @@ export class CockroachQueryRunner
             await this.query("RELEASE SAVEPOINT cockroach_restart")
             await this.query("COMMIT")
             this.isTransactionActive = false
+            this.transactionLockRows = "scanned"
             this.transactionDepth -= 1
         }
 
@@ -251,6 +269,7 @@ export class CockroachQueryRunner
         } else {
             await this.query("ROLLBACK")
             this.isTransactionActive = false
+            this.transactionLockRows = "scanned"
             this.transactionDepth -= 1
         }
 
@@ -373,6 +392,27 @@ export class CockroachQueryRunner
         } finally {
             await broadcasterResult.wait()
         }
+    }
+
+    async queryWithLockRows(
+        lockRows: LockRows,
+        query: string,
+        parameters?: unknown[],
+    ): Promise<QueryResult> {
+        if (!this.isTransactionActive)
+            throw new PessimisticLockTransactionRequiredError()
+
+        if (lockRows === this.transactionLockRows)
+            return this.query(query, parameters, true)
+
+        await this.setLocalLockRows(lockRows)
+        const queryResult: QueryResult = await this.query(
+            query,
+            parameters,
+            true,
+        )
+        await this.setLocalLockRows(this.transactionLockRows)
+        return queryResult
     }
 
     /**
@@ -3077,6 +3117,13 @@ export class CockroachQueryRunner
     // -------------------------------------------------------------------------
     // Protected Methods
     // -------------------------------------------------------------------------
+
+    protected async setLocalLockRows(lockRows: LockRows): Promise<void> {
+        const lockOperatorSetting = lockRows === "returned" ? "on" : "off"
+        await this.query(
+            `SET LOCAL optimizer_use_lock_op_for_serializable = ${lockOperatorSetting}`,
+        )
+    }
 
     protected async loadViews(viewNames?: string[]): Promise<View[]> {
         const hasTable = await this.hasTable(this.getTypeormMetadataTableName())
