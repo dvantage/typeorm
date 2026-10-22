@@ -1,3 +1,9 @@
+# [1.2.0](https://github.com/dvantage/typeorm/compare/1.1.1...1.2.0) (2026-10-22)
+
+### Features
+
+- **cockroachdb:** lock only returned rows per query or transaction ([159915e](https://github.com/dvantage/typeorm/commit/159915e44c7fe82e490f6c5e4a181c7f4375ce27))
+
 ## [1.1.1](https://github.com/typeorm/typeorm/compare/1.1.0...1.1.1) (2026-09-01)
 
 ### Bug Fixes
