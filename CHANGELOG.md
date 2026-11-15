@@ -1,3 +1,9 @@
+## [1.2.2](https://github.com/dvantage/typeorm/compare/1.2.1...1.2.2) (2026-11-16)
+
+### Bug Fixes
+
+- include the fixes of TypeORM 1.1.2 and 1.1.3 ([3e5ef0f](https://github.com/dvantage/typeorm/commit/3e5ef0fd511cf0fad60c340a47c51c18d18c437e))
+
 ## [1.2.1](https://github.com/dvantage/typeorm/compare/1.2.0...1.2.1) (2026-11-15)
 
 ### Bug Fixes
