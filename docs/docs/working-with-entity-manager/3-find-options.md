@@ -57,6 +57,26 @@ LEFT JOIN "videos" ON "videos"."id" = "user"."videoId"
 LEFT JOIN "video_attributes" ON "video_attributes"."id" = "videos"."video_attributesId"
 ```
 
+- `join` - joins relations without selecting their columns. `alias` names the main entity, and each `leftJoin` key is the alias of the relation path in its value
+
+```typescript
+userRepository.find({
+    join: {
+        alias: "user",
+        leftJoin: {
+            profile: "user.profile",
+        },
+    },
+})
+```
+
+will execute following query:
+
+```sql
+SELECT "user".* FROM "user"
+LEFT JOIN "profile" ON "profile"."id" = "user"."profileId"
+```
+
 - `relationLoadStrategy` - controls how relations are loaded: `"join"` (default) uses SQL JOINs, `"query"` uses separate queries. See [Eager and Lazy Relations](../relations/5-eager-and-lazy-relations.md#relation-load-strategy) for details.
 
 - `loadEagerRelations` - controls whether eager relations (marked with `eager: true`) are automatically loaded. Defaults to `true`. See [Eager and Lazy Relations](../relations/5-eager-and-lazy-relations.md#relation-load-strategy) for details.

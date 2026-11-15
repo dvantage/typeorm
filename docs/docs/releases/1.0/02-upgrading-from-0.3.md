@@ -667,9 +667,24 @@ categoryCount: number
 
 ## Find Options
 
-### `join` option removed
+### `join` option keeps only `leftJoin`
 
-The deprecated `join` property on `FindOneOptions` and `FindManyOptions` has been removed, along with the `JoinOptions` interface.
+The `join` property on `FindOneOptions` and `FindManyOptions` keeps `alias` and `leftJoin`; `leftJoinAndSelect`, `innerJoinAndSelect`, and `innerJoin` have been removed.
+
+#### `leftJoin` kept
+
+`leftJoin` joins a relation without selecting its columns. Each key is the alias of the joined relation, and `alias` names the main entity in the relation paths:
+
+```typescript
+const posts = await repository.find({
+    join: {
+        alias: "post",
+        leftJoin: {
+            categories: "post.categories",
+        },
+    },
+})
+```
 
 #### `leftJoinAndSelect` → `relations`
 
@@ -695,7 +710,7 @@ const posts = await repository.find({
 
 #### All other join types → QueryBuilder
 
-The `relations` option only supports LEFT JOINs with selection. If you were using `innerJoinAndSelect`, `innerJoin`, or `leftJoin` (without select), switch to the QueryBuilder API:
+The `relations` option only supports LEFT JOINs with selection. If you were using `innerJoinAndSelect` or `innerJoin`, switch to the QueryBuilder API:
 
 ```typescript
 // Before — innerJoinAndSelect
@@ -712,24 +727,6 @@ const posts = await repository.find({
 const posts = await repository
     .createQueryBuilder("post")
     .innerJoinAndSelect("post.categories", "categories")
-    .getMany()
-
-// Before — leftJoin (without select)
-const posts = await repository.find({
-    join: {
-        alias: "post",
-        leftJoin: {
-            categories: "post.categories",
-        },
-    },
-    where: { categories: { isRemoved: false } },
-})
-
-// After — QueryBuilder with leftJoin
-const posts = await repository
-    .createQueryBuilder("post")
-    .leftJoin("post.categories", "categories")
-    .where("categories.isRemoved = :isRemoved", { isRemoved: false })
     .getMany()
 ```
 
