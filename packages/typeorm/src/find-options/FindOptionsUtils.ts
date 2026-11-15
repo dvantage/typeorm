@@ -47,6 +47,28 @@ export class FindOptionsUtils {
     }
 
     /**
+     * Throws if a removed `join` type is present on a find-options object.
+     * This catches untyped/JS callers still passing `innerJoin`, `leftJoinAndSelect`
+     * or `innerJoinAndSelect` after their removal in v1.0.
+     *
+     * @param options
+     */
+    static rejectRemovedJoinTypes(options: FindOneOptions): void {
+        const joinOptions: ObjectLiteral | undefined = options.join
+        const removedJoinType = [
+            "innerJoin",
+            "leftJoinAndSelect",
+            "innerJoinAndSelect",
+        ].find((joinType) => joinOptions?.[joinType] != null)
+        if (removedJoinType) {
+            throw new TypeORMError(
+                `"join.${removedJoinType}" option has been removed. Use "relations" ` +
+                    `or QueryBuilder instead. See the v1 migration guide for details.`,
+            )
+        }
+    }
+
+    /**
      * Converts the string-array `select` syntax into the object syntax.
      *
      * @param select

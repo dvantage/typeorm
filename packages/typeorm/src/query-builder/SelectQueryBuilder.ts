@@ -109,7 +109,7 @@ export class SelectQueryBuilder<Entity extends ObjectLiteral>
     // -------------------------------------------------------------------------
 
     setFindOptions(findOptions: FindManyOptions<Entity>) {
-        FindOptionsUtils.rejectJoinOption(findOptions)
+        FindOptionsUtils.rejectRemovedJoinTypes(findOptions)
         this.findOptions = {
             ...findOptions,
             select: FindOptionsUtils.normalizeSelect(findOptions.select),
@@ -3407,6 +3407,16 @@ export class SelectQueryBuilder<Entity extends ObjectLiteral>
                     this.findOptions.cache.id,
                     this.findOptions.cache.milliseconds,
                 )
+            }
+
+            const relationPathsByJoinAlias = this.findOptions.join?.leftJoin
+            if (relationPathsByJoinAlias) {
+                Object.keys(relationPathsByJoinAlias).forEach((joinAlias) => {
+                    this.leftJoin(
+                        relationPathsByJoinAlias[joinAlias],
+                        joinAlias,
+                    )
+                })
             }
 
             if (this.findOptions.lock) {

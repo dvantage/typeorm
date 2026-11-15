@@ -1129,7 +1129,10 @@ export class EntityManager {
         options?: FindManyOptions<Entity>,
     ): Promise<boolean> {
         const metadata = this.dataSource.getMetadata(entityClass)
-        return this.createQueryBuilder(entityClass, metadata.name)
+        return this.createQueryBuilder(
+            entityClass,
+            options?.join?.alias ?? metadata.name,
+        )
             .setFindOptions(options ?? {})
             .getExists()
     }
@@ -1162,7 +1165,10 @@ export class EntityManager {
         options?: FindManyOptions<Entity>,
     ): Promise<number> {
         const metadata = this.dataSource.getMetadata(entityClass)
-        return this.createQueryBuilder(entityClass, metadata.name)
+        return this.createQueryBuilder(
+            entityClass,
+            options?.join?.alias ?? metadata.name,
+        )
             .setFindOptions(options ?? {})
             .getCount()
     }
@@ -1290,7 +1296,7 @@ export class EntityManager {
         const metadata = this.dataSource.getMetadata(entityClass)
         return this.createQueryBuilder<Entity>(
             entityClass as any,
-            metadata.name,
+            options?.join?.alias ?? metadata.name,
         )
             .setFindOptions(options ?? {})
             .getMany()
@@ -1330,7 +1336,7 @@ export class EntityManager {
         const metadata = this.dataSource.getMetadata(entityClass)
         return this.createQueryBuilder<Entity>(
             entityClass as any,
-            metadata.name,
+            options?.join?.alias ?? metadata.name,
         )
             .setFindOptions(options ?? {})
             .getManyAndCount()
@@ -1377,7 +1383,10 @@ export class EntityManager {
         }
 
         // create query builder and apply find options
-        return this.createQueryBuilder<Entity>(entityClass, metadata.name)
+        return this.createQueryBuilder<Entity>(
+            entityClass,
+            options.join?.alias ?? metadata.name,
+        )
             .setFindOptions({
                 ...options,
                 take: 1,

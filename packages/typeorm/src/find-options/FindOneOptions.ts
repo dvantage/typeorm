@@ -1,3 +1,4 @@
+import type { JoinOptions } from "./JoinOptions"
 import type { FindOptionsWhere } from "./FindOptionsWhere"
 import type {
     FindOptionsSelect,
@@ -43,6 +44,11 @@ export interface FindOneOptions<Entity = any> {
      * Default strategy is "join", but default can be customized in connection options.
      */
     relationLoadStrategy?: "join" | "query"
+
+    /**
+     * Specifies what relations should be joined without selecting their columns.
+     */
+    join?: JoinOptions
 
     /**
      * Order, in which entities should be ordered.
