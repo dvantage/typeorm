@@ -620,7 +620,7 @@ AppDataSource.initialize().then(async () => {
                 return `services:
 
   cockroachdb:
-    image: "cockroachdb/cockroach:v25.1.2"
+    image: "cockroachdb/cockroach:v26.2.9"
     command: start --insecure
     ports:
       - "26257:26257"

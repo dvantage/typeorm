@@ -35,7 +35,7 @@ jobs:
       TOTAL_SHARDS: 6
     services:
       cockroachdb:
-        image: cockroachdb/cockroach:v24.3.8
+        image: cockroachdb/cockroach:v26.2.9
         ports:
           - "26257:26257"
         env:
