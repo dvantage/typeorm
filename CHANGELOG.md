@@ -1,3 +1,9 @@
+# [1.3.0](https://github.com/dvantage/typeorm/compare/1.2.2...1.3.0) (2026-11-16)
+
+### Features
+
+- **find-options:** restore join with leftJoin in find methods ([0cbe56b](https://github.com/dvantage/typeorm/commit/0cbe56b4fb2b565058b0e97c912fb9fb77853629))
+
 ## [1.2.2](https://github.com/dvantage/typeorm/compare/1.2.1...1.2.2) (2026-11-16)
 
 ### Bug Fixes
