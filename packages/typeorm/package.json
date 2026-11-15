@@ -144,9 +144,8 @@
     "node": "^20.19.0 || ^22.13.0 || >=24.11.0"
   },
   "publishConfig": {
-    "access": "restricted",
-    "directory": "build/package",
-    "registry": "https://npm.pkg.github.com"
+    "access": "public",
+    "directory": "build/package"
   },
   "tags": [
     "orm",
