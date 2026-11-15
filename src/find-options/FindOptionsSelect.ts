@@ -35,4 +35,7 @@ export type FindOptionsSelect<Entity> = {
         : FindOptionsSelectProperty<NonNullable<Entity[P]>>
 }
 
+/**
+ * Property paths (column names) to be selected by "find" defined as string.
+ */
 export type FindOptionsSelectByString<Entity> = (keyof Entity)[]

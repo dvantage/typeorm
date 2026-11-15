@@ -54,6 +54,10 @@ export interface QueryRunner extends AsyncDisposable {
      */
     readonly isTransactionActive: boolean
 
+    /**
+     * Policy that runs transaction callbacks again after retryable errors.
+     * Defined only by drivers that retry transactions (CockroachDB).
+     */
     readonly transactionRetryPolicy?: TransactionRetryPolicy
 
     /**

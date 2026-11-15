@@ -7,9 +7,18 @@ const SERIALIZATION_FAILURE_ERROR_CODE = "40001"
 const BASE_RETRY_DELAY_MS = 25
 const MAX_RETRY_DELAY_MS = 400
 
+/**
+ * Runs transaction callbacks of a CockroachDB query runner again after serialization failures.
+ */
 export class CockroachTransactionRetryPolicy implements TransactionRetryPolicy {
+    /**
+     * Maximum number of retries, set by the maxTransactionRetries data source option.
+     */
     readonly maxRetries: number
 
+    /**
+     * Query runner whose transaction is restarted before a retry.
+     */
     protected queryRunner: CockroachQueryRunner
 
     constructor(queryRunner: CockroachQueryRunner) {
@@ -21,6 +30,12 @@ export class CockroachTransactionRetryPolicy implements TransactionRetryPolicy {
         )
     }
 
+    /**
+     * Checks if the transaction callback must run again after the given error.
+     *
+     * @param transactionError
+     * @param retryNumber
+     */
     shouldRetry(transactionError: unknown, retryNumber: number): boolean {
         return (
             retryNumber <= this.maxRetries &&
@@ -28,6 +43,11 @@ export class CockroachTransactionRetryPolicy implements TransactionRetryPolicy {
         )
     }
 
+    /**
+     * Returns the delay in milliseconds before the given retry.
+     *
+     * @param retryNumber
+     */
     delayBeforeRetry(retryNumber: number): number {
         const exponentialDelay = BASE_RETRY_DELAY_MS * 2 ** (retryNumber - 1)
         const boundedDelay = Math.min(exponentialDelay, MAX_RETRY_DELAY_MS)
@@ -36,10 +56,18 @@ export class CockroachTransactionRetryPolicy implements TransactionRetryPolicy {
         return Math.round(boundedDelay * jitterMultiplier)
     }
 
+    /**
+     * Rolls the transaction back to its cockroach_restart savepoint.
+     */
     restartTransaction(): Promise<void> {
         return this.queryRunner.restartTransaction()
     }
 
+    /**
+     * Checks if the given error is a serialization failure (SQLSTATE 40001).
+     *
+     * @param transactionError
+     */
     protected isSerializationFailure(transactionError: unknown): boolean {
         if (!(transactionError instanceof QueryFailedError)) return false
 

@@ -46,6 +46,11 @@ export class FindOptionsUtils {
         }
     }
 
+    /**
+     * Converts the string-array `select` syntax into the object syntax.
+     *
+     * @param select
+     */
     static normalizeSelect<Entity>(
         select:
             | FindOptionsSelect<Entity>
@@ -57,6 +62,11 @@ export class FindOptionsUtils {
         return OrmUtils.propertyPathsToTruthyObject(select.map(String))
     }
 
+    /**
+     * Converts the string-array `relations` syntax into the object syntax.
+     *
+     * @param relations
+     */
     static normalizeRelations<Entity>(
         relations:
             | FindOptionsRelations<Entity>

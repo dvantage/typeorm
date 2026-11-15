@@ -35,4 +35,7 @@ export type FindOptionsRelations<Entity> = {
         : FindOptionsRelationsProperty<NonNullable<Entity[P]>>
 }
 
+/**
+ * Relation names to be selected by "relation" defined as string.
+ */
 export type FindOptionsRelationByString = string[]

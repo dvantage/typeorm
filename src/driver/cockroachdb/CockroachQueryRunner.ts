@@ -48,6 +48,9 @@ export class CockroachQueryRunner
      */
     driver: CockroachDriver
 
+    /**
+     * Policy that runs transaction callbacks again after serialization failures.
+     */
     readonly transactionRetryPolicy: CockroachTransactionRetryPolicy
 
     // -------------------------------------------------------------------------
@@ -278,6 +281,10 @@ export class CockroachQueryRunner
         await this.broadcaster.broadcast("AfterTransactionRollback")
     }
 
+    /**
+     * Rolls transaction back to its cockroach_restart savepoint, so it can run again.
+     * Error will be thrown if transaction was not started.
+     */
     async restartTransaction(): Promise<void> {
         if (!this.isTransactionActive) throw new TransactionNotStartedError()
 
