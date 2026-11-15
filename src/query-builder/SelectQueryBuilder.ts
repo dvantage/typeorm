@@ -8,7 +8,6 @@ import type { MysqlDriver } from "../driver/mysql/MysqlDriver"
 import type { ReactNativeDriver } from "../driver/react-native/ReactNativeDriver"
 import type { AbstractSqliteDriver } from "../driver/sqlite-abstract/AbstractSqliteDriver"
 import type { SqlServerDriver } from "../driver/sqlserver/SqlServerDriver"
-import type { LockRows } from "../driver/types/LockRows"
 import { TypeORMError } from "../error"
 import { EntityNotFoundError } from "../error/EntityNotFoundError"
 import { EntityPropertyNotFoundError } from "../error/EntityPropertyNotFoundError"
@@ -1606,7 +1605,13 @@ export class SelectQueryBuilder<Entity extends ObjectLiteral>
         return this
     }
 
-    setLockRows(lockRows: LockRows): this {
+    /**
+     * Sets which rows a pessimistic lock covers on CockroachDB:
+     * every row the query scans or only the rows it returns.
+     *
+     * @param lockRows
+     */
+    setLockRows(lockRows: "scanned" | "returned"): this {
         this.expressionMap.lockRows = lockRows
         return this
     }

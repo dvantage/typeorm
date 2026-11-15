@@ -12,7 +12,6 @@ import type { View } from "../schema-builder/view/View"
 import type { Broadcaster } from "../subscriber/Broadcaster"
 import type { TableCheck } from "../schema-builder/table/TableCheck"
 import type { IsolationLevel } from "../driver/types/IsolationLevel"
-import type { LockRows } from "../driver/types/LockRows"
 import type { TableExclusion } from "../schema-builder/table/TableExclusion"
 import type { QueryResult } from "./QueryResult"
 import type { ReplicationMode } from "../driver/types/ReplicationMode"
@@ -99,7 +98,7 @@ export interface QueryRunner extends AsyncDisposable {
      */
     startTransaction(
         isolationLevel?: IsolationLevel,
-        lockRows?: LockRows,
+        lockRows?: "scanned" | "returned",
     ): Promise<void>
 
     /**

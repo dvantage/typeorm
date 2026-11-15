@@ -35,7 +35,6 @@ import type { SqljsEntityManager } from "../entity-manager/SqljsEntityManager"
 import { RelationLoader } from "../query-builder/RelationLoader"
 import { ObjectUtils } from "../util/ObjectUtils"
 import type { IsolationLevel } from "../driver/types/IsolationLevel"
-import type { LockRows } from "../driver/types/LockRows"
 import { validateIsolationLevel } from "../driver/validate-isolation-level"
 import type { ReplicationMode } from "../driver/types/ReplicationMode"
 import { RelationIdLoader } from "../query-builder/RelationIdLoader"
@@ -485,13 +484,19 @@ export class DataSource {
         runInTransaction: (entityManager: EntityManager) => Promise<T>,
     ): Promise<T>
     async transaction<T>(
-        options: { isolationLevel?: IsolationLevel; lockRows?: LockRows },
+        options: {
+            isolationLevel?: IsolationLevel
+            lockRows?: "scanned" | "returned"
+        },
         runInTransaction: (entityManager: EntityManager) => Promise<T>,
     ): Promise<T>
     async transaction<T>(
         isolationOrOptionsOrRunInTransaction:
             | IsolationLevel
-            | { isolationLevel?: IsolationLevel; lockRows?: LockRows }
+            | {
+                  isolationLevel?: IsolationLevel
+                  lockRows?: "scanned" | "returned"
+              }
             | ((entityManager: EntityManager) => Promise<T>),
         runInTransactionParam?: (entityManager: EntityManager) => Promise<T>,
     ): Promise<any> {

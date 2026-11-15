@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import type { DataSource, EntityManager, LockRows } from "../../../../src/"
+import type { DataSource, EntityManager } from "../../../../src/"
 import {
     LockNotSupportedOnGivenDriverError,
     NoVersionOrUpdateDateColumnError,
@@ -30,7 +30,10 @@ const seedClaimablePosts = async (dataSource: DataSource): Promise<Post[]> => {
     return dataSource.manager.save(Post, [{ title: "free" }, { title: "free" }])
 }
 
-const claimFreePost = (entityManager: EntityManager, lockRows: LockRows) =>
+const claimFreePost = (
+    entityManager: EntityManager,
+    lockRows: "scanned" | "returned",
+) =>
     entityManager
         .createQueryBuilder(Post, "post")
         .setLock("pessimistic_write")

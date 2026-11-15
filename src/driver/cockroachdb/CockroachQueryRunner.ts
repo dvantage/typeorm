@@ -26,7 +26,6 @@ import { VersionUtils } from "../../util/VersionUtils"
 import { Query } from "../Query"
 import type { ColumnType } from "../types/ColumnTypes"
 import type { IsolationLevel } from "../types/IsolationLevel"
-import type { LockRows } from "../types/LockRows"
 import { validateIsolationLevel } from "../validate-isolation-level"
 import { MetadataTableType } from "../types/MetadataTableType"
 import type { ReplicationMode } from "../types/ReplicationMode"
@@ -65,7 +64,10 @@ export class CockroachQueryRunner
      */
     protected releaseCallback?: (err: any) => void
 
-    protected transactionLockRows: LockRows = "scanned"
+    /**
+     * Rows covered by pessimistic locks of the current transaction.
+     */
+    protected transactionLockRows: "scanned" | "returned" = "scanned"
 
     // -------------------------------------------------------------------------
     // Constructor
@@ -181,7 +183,7 @@ export class CockroachQueryRunner
      */
     async startTransaction(
         isolationLevel?: IsolationLevel,
-        lockRows?: LockRows,
+        lockRows?: "scanned" | "returned",
     ): Promise<void> {
         isolationLevel ??= this.dataSource.options.isolationLevel
 
@@ -394,10 +396,18 @@ export class CockroachQueryRunner
         }
     }
 
+    /**
+     * Executes a given SQL query with pessimistic locks covering the given rows
+     * and restores the setting of the current transaction after it.
+     *
+     * @param lockRows
+     * @param query
+     * @param parameters
+     */
     async queryWithLockRows(
-        lockRows: LockRows,
+        lockRows: "scanned" | "returned",
         query: string,
-        parameters?: unknown[],
+        parameters?: any[],
     ): Promise<QueryResult> {
         if (!this.isTransactionActive)
             throw new PessimisticLockTransactionRequiredError()
@@ -406,11 +416,7 @@ export class CockroachQueryRunner
             return this.query(query, parameters, true)
 
         await this.setLocalLockRows(lockRows)
-        const queryResult: QueryResult = await this.query(
-            query,
-            parameters,
-            true,
-        )
+        const queryResult = await this.query(query, parameters, true)
         await this.setLocalLockRows(this.transactionLockRows)
         return queryResult
     }
@@ -3118,7 +3124,14 @@ export class CockroachQueryRunner
     // Protected Methods
     // -------------------------------------------------------------------------
 
-    protected async setLocalLockRows(lockRows: LockRows): Promise<void> {
+    /**
+     * Sets which rows pessimistic locks cover until the end of the current transaction.
+     *
+     * @param lockRows
+     */
+    protected async setLocalLockRows(
+        lockRows: "scanned" | "returned",
+    ): Promise<void> {
         const lockOperatorSetting = lockRows === "returned" ? "on" : "off"
         await this.query(
             `SET LOCAL optimizer_use_lock_op_for_serializable = ${lockOperatorSetting}`,

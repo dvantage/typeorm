@@ -1,4 +1,3 @@
-import type { LockRows } from "../driver/types/LockRows"
 import type { FindOptionsWhere } from "./FindOptionsWhere"
 import type {
     FindOptionsSelect,
@@ -71,7 +70,7 @@ export interface FindOneOptions<Entity = any> {
                   | "for_key_share"
               tables?: string[]
               onLocked?: "nowait" | "skip_locked"
-              rows?: LockRows
+              rows?: "scanned" | "returned"
           }
 
     /**

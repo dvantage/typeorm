@@ -28,7 +28,6 @@ import type { UpdateResult } from "../query-builder/result/UpdateResult"
 import type { DeleteResult } from "../query-builder/result/DeleteResult"
 import type { FindOptionsWhere } from "../find-options/FindOptionsWhere"
 import type { IsolationLevel } from "../driver/types/IsolationLevel"
-import type { LockRows } from "../driver/types/LockRows"
 import { ObjectUtils } from "../util/ObjectUtils"
 import type { UpsertOptions } from "../repository/UpsertOptions"
 import type { UpdateOptions } from "../repository/UpdateOptions"
@@ -124,8 +123,15 @@ export class EntityManager {
         runInTransaction: (entityManager: EntityManager) => Promise<T>,
     ): Promise<T>
 
+    /**
+     * Wraps given function execution (and all operations made there) in a transaction.
+     * All database operations must be executed using provided entity manager.
+     */
     async transaction<T>(
-        options: { isolationLevel?: IsolationLevel; lockRows?: LockRows },
+        options: {
+            isolationLevel?: IsolationLevel
+            lockRows?: "scanned" | "returned"
+        },
         runInTransaction: (entityManager: EntityManager) => Promise<T>,
     ): Promise<T>
 
@@ -139,18 +145,22 @@ export class EntityManager {
     async transaction<T>(
         isolationOrOptionsOrRunInTransaction:
             | IsolationLevel
-            | { isolationLevel?: IsolationLevel; lockRows?: LockRows }
+            | {
+                  isolationLevel?: IsolationLevel
+                  lockRows?: "scanned" | "returned"
+              }
             | ((entityManager: EntityManager) => Promise<T>),
         runInTransactionParam?: (entityManager: EntityManager) => Promise<T>,
     ): Promise<T> {
-        let isolation: IsolationLevel | undefined
-        let lockRows: LockRows | undefined
-        if (typeof isolationOrOptionsOrRunInTransaction === "string") {
-            isolation = isolationOrOptionsOrRunInTransaction
-        } else if (typeof isolationOrOptionsOrRunInTransaction === "object") {
-            isolation = isolationOrOptionsOrRunInTransaction.isolationLevel
-            lockRows = isolationOrOptionsOrRunInTransaction.lockRows
-        }
+        const transactionOptions =
+            typeof isolationOrOptionsOrRunInTransaction === "object"
+                ? isolationOrOptionsOrRunInTransaction
+                : undefined
+        const isolation =
+            typeof isolationOrOptionsOrRunInTransaction === "string"
+                ? isolationOrOptionsOrRunInTransaction
+                : transactionOptions?.isolationLevel
+        const lockRows = transactionOptions?.lockRows
         const runInTransaction =
             typeof isolationOrOptionsOrRunInTransaction === "function"
                 ? isolationOrOptionsOrRunInTransaction

@@ -1,7 +1,6 @@
 import type { ObjectLiteral } from "../common/ObjectLiteral"
 import type { DataSource } from "../data-source/DataSource"
 import type { CockroachDataSourceOptions } from "../driver/cockroachdb/CockroachDataSourceOptions"
-import type { LockRows } from "../driver/types/LockRows"
 import type { UpsertType } from "../driver/types/UpsertType"
 import { TypeORMError } from "../error"
 import type { OrderByCondition } from "../find-options/OrderByCondition"
@@ -201,7 +200,11 @@ export class QueryExpressionMap {
      */
     onLocked?: "nowait" | "skip_locked"
 
-    lockRows?: LockRows
+    /**
+     * Rows covered by a pessimistic lock on CockroachDB:
+     * every scanned row or only the returned rows.
+     */
+    lockRows?: "scanned" | "returned"
 
     /**
      * Indicates if soft-deleted rows should be included in entity result.
