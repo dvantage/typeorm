@@ -266,6 +266,25 @@ Only the callback form is retried. A transaction driven manually through a `Quer
 </DatabaseTab>
 </DatabaseTabs>
 
+## Specifying lock rows
+
+<DatabaseTabs>
+<DatabaseTab value="cockroachdb">
+
+`lockRows` sets which rows the pessimistic locks of the transaction cover: every row a query scans (`"scanned"`, default) or only the rows it returns (`"returned"`). It is supplied in the options object, together with the isolation level if needed:
+
+```typescript
+await myDataSource.manager.transaction(
+    { isolationLevel: "SERIALIZABLE", lockRows: "returned" },
+    (transactionalEntityManager) => {},
+)
+```
+
+A single query can override it with [`setLockRows`](./query-builder/1-select-query-builder.md#setlockrows) or with the `rows` option of `lock` in find options. `lockRows` cannot be set for a nested transaction.
+
+</DatabaseTab>
+</DatabaseTabs>
+
 ## Using `QueryRunner` to create and control state of single database connection
 
 `QueryRunner` provides a single database connection.

@@ -224,7 +224,8 @@ or
         "for_key_share",
 
     tables: string[],
-    onLocked: "nowait" | "skip_locked"
+    onLocked: "nowait" | "skip_locked",
+    rows: "scanned" | "returned"
 }
 ```
 

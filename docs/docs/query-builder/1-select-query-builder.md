@@ -1019,6 +1019,23 @@ Database support for `setOnLocked` based on [lock mode](#lock-modes):
 - Postgres, Cockroach: `pessimistic_read`, `pessimistic_write`, `for_no_key_update`, `for_key_share`
 - SAP HANA: `pessimistic_read`, `pessimistic_write`
 
+### setLockRows
+
+Allows you to control which rows a pessimistic lock covers on CockroachDB. By default, the lock covers every row the query scans.
+To lock only the rows the query returns, use `setLockRows`:
+
+```typescript
+const users = await dataSource
+    .getRepository(User)
+    .createQueryBuilder("user")
+    .setLock("pessimistic_write")
+    .setOnLocked("skip_locked")
+    .setLockRows("returned")
+    .getMany()
+```
+
+`setLockRows` is supported on CockroachDB only, with the `pessimistic_read`, `pessimistic_write`, `for_no_key_update` and `for_key_share` [lock modes](#lock-modes).
+
 ## Use custom index
 
 You can provide a certain index for database server to use in some cases. This feature is only supported in MySQL.
