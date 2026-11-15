@@ -1,3 +1,9 @@
+## [1.2.1](https://github.com/dvantage/typeorm/compare/1.2.0...1.2.1) (2026-11-15)
+
+### Bug Fixes
+
+- **cockroachdb:** inline lock row types and add their JSDoc ([61a6ea8](https://github.com/dvantage/typeorm/commit/61a6ea881e83b7806e33b2183e27f69210ece265))
+
 # [1.2.0](https://github.com/dvantage/typeorm/compare/1.1.1...1.2.0) (2026-10-22)
 
 ### Features
