@@ -10,6 +10,34 @@
 
 - **cockroachdb:** lock only returned rows per query or transaction ([159915e](https://github.com/dvantage/typeorm/commit/159915e44c7fe82e490f6c5e4a181c7f4375ce27))
 
+## [1.1.3](https://github.com/typeorm/typeorm/compare/1.1.2...1.1.3) (2026-11-12)
+
+### Bug Fixes
+
+- do not load lazy relations when building the entity id map ([#12985](https://github.com/typeorm/typeorm/issues/12985)) ([4bd74eb](https://github.com/typeorm/typeorm/commit/4bd74ebca639669cecadc5bfc66927f11e899376))
+- **mssql:** place table lock hint inside nested join parentheses ([#12765](https://github.com/typeorm/typeorm/issues/12765)) ([5a8a140](https://github.com/typeorm/typeorm/commit/5a8a1400361a4b5cb90e805bea2c665149da3911))
+- **persistence:** honour the utc flag when detecting changed date columns ([#12949](https://github.com/typeorm/typeorm/issues/12949)) ([fe92394](https://github.com/typeorm/typeorm/commit/fe92394287516feeada6e9c308ebe22deca2458e))
+- **query-builder:** guard nulls in orderBy object shorthand ([#12706](https://github.com/typeorm/typeorm/issues/12706)) ([da473df](https://github.com/typeorm/typeorm/commit/da473df40df3933c1846f72144575d673aeef1cd))
+- release database cache runners after failed removals ([#12938](https://github.com/typeorm/typeorm/issues/12938)) ([f372541](https://github.com/typeorm/typeorm/commit/f37254182f5fb6d996f16c2d5a557259e4626359))
+- release SQL Server query locks after subscriber errors ([#12939](https://github.com/typeorm/typeorm/issues/12939)) ([9f5a345](https://github.com/typeorm/typeorm/commit/9f5a345d23b87e4ffdc282b441f6ff15c426c130))
+- use static `require` calls in `PlatformTools.load` for bundler compatibility ([#12729](https://github.com/typeorm/typeorm/issues/12729)) ([5a572a4](https://github.com/typeorm/typeorm/commit/5a572a40bae2f85a1d5f7b87a0aa88bbbaec5ab3))
+
+### Performance Improvements
+
+- use performance.now() for query execution timing ([#12750](https://github.com/typeorm/typeorm/issues/12750)) ([dca49fd](https://github.com/typeorm/typeorm/commit/dca49fd1d7d5fcd7e3389fc62f73de6916e8cdb8))
+
+## [1.1.2](https://github.com/typeorm/typeorm/compare/1.1.1...1.1.2) (2026-10-07)
+
+### Bug Fixes
+
+- **cockroachdb:** release all query runners before closing pool ([#12891](https://github.com/typeorm/typeorm/issues/12891)) ([3dddc4b](https://github.com/typeorm/typeorm/commit/3dddc4b8361d24e8bff5ef761167dfecf8ecaad7))
+- **data-source:** prevent connection leaks in `DataSource.initialize()` ([#12704](https://github.com/typeorm/typeorm/issues/12704)) ([67991e8](https://github.com/typeorm/typeorm/commit/67991e8d82997e18536f94b6009033be54164fe6))
+- handle schema and table name correctly in generated columns in metadata table ([#12423](https://github.com/typeorm/typeorm/issues/12423)) ([4a6a44b](https://github.com/typeorm/typeorm/commit/4a6a44b507f73a5e00b25323f2752e0abcf26d7a))
+- **metadata-builder:** keep the STI discriminator index on entities with embeddeds ([#12841](https://github.com/typeorm/typeorm/issues/12841)) ([7a9009d](https://github.com/typeorm/typeorm/commit/7a9009d299c178b37adeb5369e5d6de6efd6d93d))
+- **postgres,cockroachdb:** compare spatial columns against their default feature type and SRID ([#12812](https://github.com/typeorm/typeorm/issues/12812)) ([a5bd2e5](https://github.com/typeorm/typeorm/commit/a5bd2e5dc01ffa63ef8957ad47a5f7f68ebbeffb))
+- prevent composite primary key collisions during hydration ([#12905](https://github.com/typeorm/typeorm/issues/12905)) ([c64a1f0](https://github.com/typeorm/typeorm/commit/c64a1f052fc39f6688b6b73b83d065d7147ba8bb))
+- read closure-table primary values through column metadata ([#12907](https://github.com/typeorm/typeorm/issues/12907)) ([876eb04](https://github.com/typeorm/typeorm/commit/876eb0486aeed73ff0908ebb8b5896b63f1d4a19))
+
 ## [1.1.1](https://github.com/typeorm/typeorm/compare/1.1.0...1.1.1) (2026-09-01)
 
 ### Bug Fixes

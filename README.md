@@ -16,7 +16,7 @@
   <br>
 </div>
 
-**This is a fork of [TypeORM](https://github.com/typeorm/typeorm) 1.1.1.** It adds:
+**This is a fork of [TypeORM](https://github.com/typeorm/typeorm) 1.1.3.** It adds:
 
 - `transaction()` runs the callback again after a CockroachDB `40001` serialization failure, see [Transaction retries](./docs/docs/transactions.mdx#transaction-retries).
 - Pessimistic locks on CockroachDB can cover only the rows a query returns, see [setLockRows](./docs/docs/query-builder/1-select-query-builder.md#setlockrows).
