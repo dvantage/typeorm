@@ -22,6 +22,7 @@
 - Pessimistic locks on CockroachDB can cover only the rows a query returns, see [setLockRows](./docs/docs/query-builder/1-select-query-builder.md#setlockrows).
 - Find options keep the string-array `select` and `relations` syntax next to the object syntax, see [Upgrading from 0.3](./docs/docs/releases/1.0/02-upgrading-from-0.3.md#string-based-select-kept).
 - Find options keep `join` with `alias` and `leftJoin`, which joins a relation without selecting its columns, see [Upgrading from 0.3](./docs/docs/releases/1.0/02-upgrading-from-0.3.md#leftjoin-kept).
+- `SnakeNamingStrategy` names tables and columns in snake_case, the same way as `typeorm-naming-strategies`, see [Data Source Options](./docs/docs/data-source/2-data-source-options.md#common-data-source-options).
 
 TypeORM is an [ORM](https://en.wikipedia.org/wiki/Object-relational_mapping) that can run in Node.js, Browser, Cordova, Ionic, React Native, NativeScript, Expo, and Electron platforms and can be used with TypeScript and JavaScript (ES2023). Its goal is to always support the latest JavaScript features and provide additional features that help you to develop any kind of application that uses databases - from small applications with a few tables to large-scale enterprise applications with multiple databases.
 

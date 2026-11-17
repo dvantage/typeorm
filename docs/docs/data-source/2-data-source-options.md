@@ -43,6 +43,8 @@ Different RDBMS-es have their own specific options.
 - `poolSize` - Configure maximum number of active connections is the pool.
 
 - `namingStrategy` - Naming strategy to be used to name tables and columns in the database.
+  Besides `DefaultNamingStrategy`, the package exports `SnakeNamingStrategy`, which names tables and columns in snake_case:
+  `namingStrategy: new SnakeNamingStrategy()`.
 
 - `entityPrefix` - Prefixes with the given string all tables (or collections) on this data source.
 
