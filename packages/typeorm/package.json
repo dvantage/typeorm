@@ -1,6 +1,6 @@
 {
   "name": "@dvantage/typeorm",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Data-Mapper ORM for TypeScript and ES2023+. Supports MySQL/MariaDB, PostgreSQL, MS SQL Server, Oracle, SAP HANA, SQLite, MongoDB databases.",
   "repository": {
     "type": "git",

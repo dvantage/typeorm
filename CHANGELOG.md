@@ -1,3 +1,9 @@
+# [1.4.0](https://github.com/dvantage/typeorm/compare/1.3.0...1.4.0) (2026-11-17)
+
+### Features
+
+- **naming-strategy:** add SnakeNamingStrategy to the package ([b5759e5](https://github.com/dvantage/typeorm/commit/b5759e5e48d159abb9c47ff2883441080aa4599a))
+
 # [1.3.0](https://github.com/dvantage/typeorm/compare/1.2.2...1.3.0) (2026-11-16)
 
 ### Features
